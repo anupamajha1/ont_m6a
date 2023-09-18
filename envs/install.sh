@@ -12,6 +12,8 @@ conda install -c anaconda scipy
 
 conda install -c anaconda scikit-learn
 
+module load cuda/11.7.1
+
 conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
 
 
