@@ -11,17 +11,20 @@ conda env create -f envs/ml_env.yml
 ## Making ML dataset (for new datasets)
 
 ```
+cd src
 python m6a_ont_data.py --positive_path ../data/HG002_2_00.npz --negative_path ../data/HG002_3_00.npz
 ```
 
 ## Running supervised CNN network
 
 ```
+cd src
 python m6a_supervised_cnn.py --config_file ../config.yml
 ```
 
 ## Running semi-supervised CNN network (after supervised run, as it needs supervised CNN model to initialize)
 
 ```
+cd src
 python m6a_semi_supervised_cnn.py --config_file ../config.yml
 ```
