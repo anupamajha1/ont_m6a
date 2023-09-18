@@ -8,7 +8,12 @@ m6A calling from ONT data. Repository for UW GS hackathon
 /net/gs/vol4/shared/public/hackathon_2023/Stergachis_lab/data/ml_data/HG002_2_3_00_val.npz
 /net/gs/vol4/shared/public/hackathon_2023/Stergachis_lab/data/ml_data/HG002_2_3_00_test.npz
 ```
-Use _train.npz file for training and _val.npz file for validation
+You can get on the GS cluster and run the following snippet to copy data over 
+
+```
+cd data
+sh get_data.sh
+```
 
 ## ML conda env
 
