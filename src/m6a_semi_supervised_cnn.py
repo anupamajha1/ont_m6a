@@ -20,7 +20,7 @@ import argparse
 import numpy as np
 import configparser
 import _pickle as pickle
-from .m6a_cnn import M6ANet
+from m6a_cnn import M6ANet
 from torchsummary import summary
 from sklearn.metrics import average_precision_score, roc_auc_score
 
@@ -788,13 +788,13 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--config_file", type=str, default="paper_v1/config.yml", help="path to the config file."
+        "--config_file", type=str, default="../config.yml", help="path to the config file."
     )
 
     parser.add_argument(
         "--train_chem",
         type=str,
-        default="train_2_2_chemistry",
+        default="train_ONT_chemistry",
         help="Which chemistry to validate. The name should match the section header in the config file.",
     )
     

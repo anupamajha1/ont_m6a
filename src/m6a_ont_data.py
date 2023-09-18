@@ -26,6 +26,9 @@ def read_data(positive_path, negative_path, input_size=6):
     print(f"X_pos: {X_pos.shape}, {X_pos[0]}")
     print(f"y_pos: {y_pos.shape}")
     
+    X_pos = X_pos[0:4000000]
+    y_pos = y_pos[0:4000000]
+    read_pos = read_pos[0:4000000]
     
     # Load negative_data
     negative_data = np.load(negative_path, allow_pickle=True)
@@ -40,6 +43,10 @@ def read_data(positive_path, negative_path, input_size=6):
     
     print(f"X_neg: {X_neg.shape}, {X_neg[0]}")
     print(f"y_neg: {y_neg.shape}")
+    
+    X_neg = X_neg[0:4000000]
+    y_neg = y_neg[0:4000000]
+    read_neg = read_neg[0:4000000]
     
     X_all = np.concatenate((X_pos, X_neg), axis=0)
     y_all = np.concatenate((y_pos, y_neg), axis=0)
