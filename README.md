@@ -12,7 +12,7 @@ You can get on the GS cluster and run the following snippet to copy data over
 
 ```
 cd data
-sh get_data.sh
+sh softlink_data.sh
 ```
 
 ## ML conda env
