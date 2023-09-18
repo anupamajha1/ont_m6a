@@ -1,6 +1,14 @@
 # ont_m6a
 m6A calling from ONT data. Repository for UW GS hackathon
 
+## Stored data for modelling
+
+```
+/net/gs/vol4/shared/public/hackathon_2023/Stergachis_lab/data/ml_data/HG002_2_3_00_train.npz
+/net/gs/vol4/shared/public/hackathon_2023/Stergachis_lab/data/ml_data/HG002_2_3_00_val.npz
+/net/gs/vol4/shared/public/hackathon_2023/Stergachis_lab/data/ml_data/HG002_2_3_00_test.npz
+```
+Use _train.npz file for training and _val.npz file for validation
 
 ## ML conda env
 
@@ -11,7 +19,7 @@ conda env create -f envs/ml_env.yml
 ## Making ML dataset (for new datasets)
 
 ```
-python m6a_ont_data.py --positive_path ../data/HG002_2_00.npz --negative_path ../data/HG002_3_00.npz
+python m6a_ont_data.py --positive_path ../data/HG002_2_00.npz --negative_path ../data/HG002_3_00.npz --save_path ../data/HG002_2_3_00
 ```
 
 ## Running supervised CNN network

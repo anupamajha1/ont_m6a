@@ -12,7 +12,7 @@ import numpy as np
 import configparser
 from sklearn.model_selection import StratifiedKFold
 
-def read_data(positive_path, negative_path, input_size=6):
+def read_data(positive_path, negative_path, save_path, input_size=6):
     # Load positive_data
     positive_data = np.load(positive_path, allow_pickle=True)
     print(list(positive_data.keys()))
@@ -90,9 +90,9 @@ def read_data(positive_path, negative_path, input_size=6):
     print("Val: ", X_val.shape, y_val.shape, read_val.shape)
     print("Test: ", X_test.shape, y_test.shape, read_test.shape)
             
-    np.savez("../data/HG002_2_3_00_train.npz", features=X_train, labels=y_train, read_ids=read_train)
-    np.savez("../data/HG002_2_3_00_val.npz", features=X_val, labels=y_val, read_ids=read_val)
-    np.savez("../data/HG002_2_3_00_test.npz", features=X_test, labels=y_test, read_ids=read_test)
+    np.savez(f"{save_path}_train.npz", features=X_train, labels=y_train, read_ids=read_train)
+    np.savez(f"{save_path}_val.npz", features=X_val, labels=y_val, read_ids=read_val)
+    np.savez(f"{save_path}_test.npz", features=X_test, labels=y_test, read_ids=read_test)
         
     
     
@@ -107,10 +107,14 @@ def main():
     parser.add_argument(
         "--negative_path", type=str, default="../data/HG002_3_00.npz", help="path to the negative data file."
     )
+    
+    parser.add_argument(
+        "--save_path", type=str, default="../data/HG002_2_3_00", help="path and prefix to save files."
+    )
 
     args = parser.parse_args()
 
-    read_data(args.positive_path, args.negative_path)
+    read_data(args.positive_path, args.negative_path, args.save_path)
 
 
 if __name__ == "__main__":
