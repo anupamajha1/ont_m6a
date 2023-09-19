@@ -96,6 +96,11 @@ def process_rec(rec, n_context=7, n_sites=1e6):
     if mod_bases is None:
         return(None)
     mod_seq = build_mod_seq(rec, mod_bases) # must be done before sampling
+
+    # use all A's instead of just modified ones
+    A_locs = np.array([m.start() for m in re.finditer('A', rec.query_sequence)])
+    # A_locs = np.array([i for i,c in enumerate(rec.query_sequence) if c == "A"])
+    mod_bases = np.stack([A_locs, mod_seq[A_locs]], axis=1)
     
     if mod_bases.shape[0] > n_sites:
         mod_bases = mod_bases[np.random.choice(mod_bases.shape[0], n_sites, replace=False)]
