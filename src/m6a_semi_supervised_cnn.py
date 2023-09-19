@@ -575,7 +575,7 @@ def run(config_file, train_chem, smart_init):
         # Use Inter-pulse distance
         # for the central base as
         # the initial classifier
-        y_score_val = X_val[:, 4, 7]
+        y_score_val = X_val[:, 5, 7]
 
         # Convert y_val to
         # a one-hot-encoded
@@ -647,7 +647,7 @@ def run(config_file, train_chem, smart_init):
     # the initial classifier
     # Get score for training
     # data
-    y_score = X_train[:, 4, 7]
+    y_score = X_train[:, 5, 7]
     if verbose:
         print(
             f"y_score: {y_score.shape}, "
