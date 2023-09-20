@@ -19,7 +19,7 @@ v_hash = np.vectorize(hash, doc='vectorized hash')
 # =============================================================================
 
 def filter_data(data_set, cutoff):
-    mask = data_set['features'][:,5,7] > cutoff
+    mask = data_set['features'][:,5,7] >= cutoff
     data_filt = {key:value[mask] for (key,value) in data_set.items()}
     return(data_filt)
 
