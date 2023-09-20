@@ -54,13 +54,15 @@ def main(args):
     negative_set = dict(np.load(args.negative_file))
     
     positive_set = filter_data(positive_set, args.cutoff_score)
-    negative_set = filter_data(negative_set, args.cutoff_score)
+    # negative_set = filter_data(negative_set, args.cutoff_score)
 
     pos_split = split_by_read(positive_set, np.array(args.split_counts)/2)
     neg_split = split_by_read(negative_set, np.array(args.split_counts)/2)
     
     for i, suffix in enumerate(args.split_names):
         merged_data = shuffle_merge([pos_split[i], neg_split[i]])
+        merged_data['features'] = np.array(merged_data['features'], dtype=np.float32)
+        merged_data['features'][:,4:,:] = merged_data['features'][:,4:,:] / 255
         file_name = args.output_prefix + "_" + suffix + ".npz"
         np.savez(file_name, **merged_data)
         
@@ -87,5 +89,7 @@ if __name__ == '__main__':
         if i % 2 == 0:   
             args.split_names.append(args.split[i])
         else:
-            args.split_counts.append(args.split[i])
+            args.split_counts.append(int(args.split[i]))
     main(args)
+    # print(args.split_names)
+    # print(args.split_counts)

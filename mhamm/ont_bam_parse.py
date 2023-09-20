@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import argparse
 import pysam
+import re
 
 CPG_MODS = [("C", 0, "m"), ("C", 1, "m")]
 M6A_MODS = [("A", 0, "a"), ("T", 1, "a"), ("A", 1, "a"), ("T", 0, "a")]
