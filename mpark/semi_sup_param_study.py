@@ -1,21 +1,36 @@
+#!/usr/bin/env python3
+"""
+m6a_semi_supervised_cnn.py
+Author: Anupama Jha <anupamaj@uw.edu>
+This module predicts whether an
+adenine is methylated or not. The
+model is trained with ONT read sequence, 
+read quality score and methylation score
+from oxford nanopore. The model is a
+convolutional neural network. The
+training scheme is semi-supervised
+where we assume that the m6A labels
+are a mixed set with false
+positives and the negative labels
+are a clean set.
+"""
+
 import torch
-#import argparse
+import argparse
 import numpy as np
 import configparser
 import _pickle as pickle
 from torchsummary import summary
 from sklearn.metrics import average_precision_score, roc_auc_score
+import optuna
+import io
 
 import sys
 sys.path.insert(0,"..")
 from src.m6a_cnn import M6ANet
 
-
 verbose = False
 
-# Uses existing semi supervised with the following edits:
-    # Parameterizes input_length (number of bp included in each window).
-    # Runs optuna study to find best hyperparamter values.
 
 def count_pos_neg(labels, set_name=""):
     """
@@ -57,6 +72,157 @@ def make_one_hot_encoded(y_array):
     zero_idx = np.where(y_array == 0)[0]
     y_array_ohe[zero_idx, 1] = 1
     return y_array_ohe
+
+class CPU_Unpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if module == 'torch.storage' and name == '_load_from_bytes':
+            return lambda b: torch.load(io.BytesIO(b), map_location='cpu')
+        else:
+            return super().find_class(module, name)
+
+class M6ADataGenerator(torch.utils.data.Dataset):
+    """
+    Data generator for the m6A
+    model. It randomly selects
+    batches from the data to
+    train the m6A model.
+    """
+
+    def __init__(self, features, labels, num_neighoring_nucleotides=7):
+        """
+        Constructor for the data
+        generator class, expects
+        features and labels matrices.
+        :param features: numpy.array,
+                            Nx15, N=number of
+                            sequences, each
+                            sequence is of
+                            length 15.
+        :param labels: numpy array,
+                            one-hot-encoded
+                            labels for whether
+                            a sequence in
+                            features variable
+                            contains methylated
+                            A or not.
+        """
+        self.features = features
+        self.labels = labels
+        if (num_neighoring_nucleotides < 7) {
+            startIdx = 7 - num_neighboring_nucleotides
+            endIdx = 7 + num_neighboring_nucleotides
+            self.features = features[:, :, startIdx:endIdx]
+        }
+
+    def __len__(self):
+        return len(self.features)
+
+    def __getitem__(self, idx):
+        """
+        Get random indices from
+        the training data
+        to form batches.
+        :param idx: numpy.array,
+                    indices to retrieve.
+        :return: x, y: features and
+                       labels from
+                       selected indices.
+        """
+        x = self.features[idx]
+        y = self.labels[idx]
+
+        x = torch.tensor(x)
+        y = torch.tensor(y)
+
+        return x, y
+
+
+def m6AGenerator(
+    train_path,
+    val_path,
+    input_size,
+    random_state=None,
+    train_sample=True,
+    train_sample_fraction=0.5,
+    val_sample=True,
+    val_sample_fraction=0.1,
+):
+    """
+    This generator returns a training
+    data generator as well as validation
+    features and labels.
+    :param train_path: str, path where
+                            the training
+                            data is stored.
+    :param val_path: str, path where the
+                          val data is stored.
+    :param input_size: int, number of input channels
+    :param random_state: np.random, random seed
+    :param train_sample: bool, sample train data
+    :param train_sample_fraction: float, what fraction
+                                         to sample
+    :param val_sample: bool, sample validation data
+    :param val_sample_fraction: float, what fraction
+                                       to sample
+    :return: X_gen: training data generator,
+             X_val: validation features,
+             y_val: validation labels
+    """
+    # Load training data
+    train_data = np.load(train_path, allow_pickle=True)
+    # initialize Random state
+    random_state = np.random.RandomState(random_state)
+
+    # Load training and validation
+    # features and labels. Sometimes
+    # we want to train on input subsets,
+    # this will achieve that.
+    X_train = train_data["features"]
+    X_train = X_train[:, 0:input_size, :]
+    y_train = train_data["labels"]
+
+    if train_sample:
+        rand_val = np.random.choice(
+            np.arange(len(y_train), dtype=int),
+            size=(int(train_sample_fraction * len(y_train)),),
+            replace=False,
+        )
+
+        X_train = X_train[rand_val, :, :]
+        y_train = y_train[rand_val]
+
+    # Load validation data
+    val_data = np.load(val_path, allow_pickle=True)
+
+    X_val = val_data["features"]
+    X_val = X_val[:, 0:input_size, :]
+    y_val = val_data["labels"]
+
+    if val_sample:
+        rand_val = np.random.choice(
+            np.arange(len(y_val), dtype=int),
+            size=(int(val_sample_fraction * len(y_val)),),
+            replace=False,
+        )
+
+        X_val = X_val[rand_val, :, :]
+        y_val = y_val[rand_val]
+
+    print(
+        f"Training features shape {X_train.shape},"
+        f" training labels shape: {y_train.shape}"
+    )
+    print(
+        f"Validation features shape {X_val.shape}, "
+        f" validation labels shape: {y_val.shape}"
+    )
+
+    count_pos_neg(y_train, set_name="Train")
+    count_pos_neg(y_val, set_name="Validation")
+
+    return X_train, y_train, X_val, y_val, random_state
+
+
 def _fdr2qvalue(fdr, num_total, met, indices):
     """
     Method from Will Fondrie's mokapot,
@@ -299,79 +465,29 @@ def compute_fdr_score(scores, y_data, fdr_threshold=0.1):
 
     return score_thresholds, num_pos
 
-class M6ADataGenerator(torch.utils.data.Dataset):
-    """
-    Data generator for the m6A
-    model. It randomly selects
-    batches from the data to
-    train the m6A model.
-    """
-
-    def __init__(self, features, labels):
-        """
-        Constructor for the data
-        generator class, expects
-        features and labels matrices.
-        :param features: numpy.array,
-                            Nx15, N=number of
-                            sequences, each
-                            sequence is of
-                            length 15.
-        :param labels: numpy array,
-                            one-hot-encoded
-                            labels for whether
-                            a sequence in
-                            features variable
-                            contains methylated
-                            A or not.
-        """
-        self.features = features
-        self.labels = labels
-
-    def __len__(self):
-        return len(self.features)
-
-    def __getitem__(self, idx):
-        """
-        Get random indices from
-        the training data
-        to form batches.
-        :param idx: numpy.array,
-                    indices to retrieve.
-        :return: x, y: features and
-                       labels from
-                       selected indices.
-        """
-        x = self.features[idx]
-        y = self.labels[idx]
-
-        x = torch.tensor(x)
-        y = torch.tensor(y)
-
-        return x, y
-
-import optuna
 
 def run(trial):
     """
     Run data preprocess and model training.
-    :param trial: optuna.trial._trial.Trial, Optuna trial
+    :param config_file: str, path to config
+                            file.
+    :param train_chem: str, which chemistry
+                            to train.
     :return:
     """
     # hyperparameters to study: learning rate
-    semi_lr = trial.suggest_int("semi_lr", 0.0001, 0.001)
-    input_length = trial.suggest_float("input_length", 3, 15, step=2)
+    semi_lr = trial.suggest_float("semi_lr", 0.0001, 0.001)
 
-    # read parameters from DEFAULT config file instead of param
+    # read parameters from config file
     config = configparser.ConfigParser()
     config.read("../config.yml")
 
-    # get parameters for the DEFAULT chemistry instead of param
+    # get parameters for the relevant chemistry
     rel_config = config["train_ONT_chemistry"]
     # Number of input channels
     input_size = int(rel_config["input_size"])
     # length of input sequence
-    # input_length = int(rel_config["input_length"])
+    input_length = int(rel_config["input_length"])
     # path to training data set
     train_data = rel_config["semi_train_data"]
     # path to validation data set
@@ -385,7 +501,8 @@ def run(trial):
     # path to save final model
     final_save_model = rel_config["final_semi_supervised_model_name"]
     # maximum number of epochs for training
-    max_epochs = int(rel_config["semi_supervised_train_epochs"])
+    #max_epochs = int(rel_config["semi_supervised_train_epochs"])
+    max_epochs = 10
     # FDR threshold for semi-supervised training
     fdr_threshold = float(rel_config["fdr"])
     # save training results
@@ -416,16 +533,13 @@ def run(trial):
     # so far
     total_m6a_percent = float(rel_config["total_m6a_percent"])
     
-   
+
     # Load the supervised model for transfer learning
-    #state_dict = torch.load(best_sup_save_model, map_location=torch.device('cpu'))
     model = M6ANet()
-    #if smart_init == "yes":
-    with open(best_sup_save_model, "rb") as fp: # use default smart_init (yes) instead of param
-        model.load_state_dict(pickle.load(fp))
-    
-    model.load_state_dict(torch.load(best_sup_save_model, map_location=device))
-    
+    with open(best_sup_save_model, "rb") as fp:
+        #model.load_state_dict(pickle.load(fp))
+        contents = CPU_Unpickler(fp).load()
+        
     model = model.to(device)
 
     # Adam optimizer with learning
@@ -537,6 +651,9 @@ def run(trial):
     # Compute total number of positives
     # and negatives in the validation set
     val_pos_all, val_neg_all = count_pos_neg(y_val, set_name="Validation set")
+    print(
+        f"Learning rate: {semi_lr}"
+    )
     print(f"Validation set has {val_pos_all} positives and {val_neg_all} negatives")
     print(
         f"Validation IPD average precision: "
@@ -689,5 +806,41 @@ def run(trial):
             )
             break
 
-study = optuna.create_study(direction="maximize")
-study.optimize(run, n_trials=3)
+        return sklearn_ap
+
+
+def main():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--config_file", type=str, default="../config.yml", help="path to the config file."
+    )
+
+    parser.add_argument(
+        "--train_chem",
+        type=str,
+        default="train_ONT_chemistry",
+        help="Which chemistry to validate. The name should match the section header in the config file.",
+    )
+    
+    parser.add_argument(
+        "--smart_init",
+        type=str,
+        default="yes",
+        choices=["yes", "no"],
+        help="Initialize with pretrained model or not. (choices: yes, no)",
+    )
+
+    args = parser.parse_args()
+
+    print(f"Training a {args.train_chem} " f"semi-supervised CNN model.")
+
+    #run(args.config_file, args.train_chem, args.smart_init)
+    study = optuna.create_study(direction="maximize")
+    study.optimize(run, n_trials=10)
+    study.best_params
+    optuna.visualization.plot_slice(study)
+
+
+if __name__ == "__main__":
+    main()
