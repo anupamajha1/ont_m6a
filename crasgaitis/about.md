@@ -7,6 +7,8 @@ Todos:
 * different num nucleotides ✔️
 * benchmark basic lstm / rnn with eval ✔️
 * try and look at weights/feature importance ✔️
+* try all combinations of nucleotide window size 
+* play around with BAM (+ maybe do visuals with that cuz it's cool lol)
 * add early stopping
 * lstm with h param search and more complex architecture
 * eval
