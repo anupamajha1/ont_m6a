@@ -247,6 +247,11 @@ def run(config_file, train_chem):
 
 
 def main():
+    # if torch.cuda.is_available():
+    #     print("GPU is available.")
+    # else:
+    #     print("GPU is not available.")
+    
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
