@@ -24,11 +24,11 @@ def read_data(positive_path, negative_path, save_path, input_size=6):
     y_pos = positive_data["labels"]
     read_pos = positive_data["read_ids"]
     print(f"X_pos: {X_pos.shape}, {X_pos[0]}")
-    print(f"y_pos: {y_pos.shape}")
+    print(f"y_pos: {y_pos.shape}, {y_pos}")
     
-    X_pos = X_pos[0:4000000]
-    y_pos = y_pos[0:4000000]
-    read_pos = read_pos[0:4000000]
+    X_pos = X_pos[0:5000000]
+    y_pos = y_pos[0:5000000]
+    read_pos = read_pos[0:5000000]
     
     # Load negative_data
     negative_data = np.load(negative_path, allow_pickle=True)
@@ -42,11 +42,11 @@ def read_data(positive_path, negative_path, save_path, input_size=6):
     read_neg = negative_data["read_ids"]
     
     print(f"X_neg: {X_neg.shape}, {X_neg[0]}")
-    print(f"y_neg: {y_neg.shape}")
+    print(f"y_neg: {y_neg.shape}, {y_neg}")
     
-    X_neg = X_neg[0:4000000]
-    y_neg = y_neg[0:4000000]
-    read_neg = read_neg[0:4000000]
+    X_neg = X_neg[0:5000000]
+    y_neg = y_neg[0:5000000]
+    read_neg = read_neg[0:5000000]
     
     X_all = np.concatenate((X_pos, X_neg), axis=0)
     y_all = np.concatenate((y_pos, y_neg), axis=0)
@@ -101,15 +101,15 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--positive_path", type=str, default="../data/HG002_2_00.npz", help="path to the positive data file."
+        "--positive_path", type=str, default="/net/gs/vol4/shared/public/hackathon_2023/Stergachis_lab/data/raw_npz/hg002_2_00.npz", help="path to the positive data file."
     )
     
     parser.add_argument(
-        "--negative_path", type=str, default="../data/HG002_3_00.npz", help="path to the negative data file."
+        "--negative_path", type=str, default="/net/gs/vol4/shared/public/hackathon_2023/Stergachis_lab/data/raw_npz/HG002_3_00.npz", help="path to the negative data file."
     )
     
     parser.add_argument(
-        "--save_path", type=str, default="../data/HG002_2_3_00", help="path and prefix to save files."
+        "--save_path", type=str, default="../data/HG002_2_3_00_allm6a", help="path and prefix to save files."
     )
 
     args = parser.parse_args()

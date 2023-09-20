@@ -19,6 +19,29 @@ from m6a_cnn import M6ANet
 from torchsummary import summary
 
 
+def count_pos_neg(labels, set_name="", verbose=True):
+    """
+    Count the number of positive
+    (m6A) and negative (everything
+    else) examples in our set
+    :param labels: np.array, one-hot-encoded
+                             label,
+    :param set_name: str, training,
+                          validation or
+                          test set.
+    :return: #positives, #negatives
+    """
+    # First column are positive labels
+    m6as = np.where(labels == 1)[0]
+    # Second column are negative labels
+    nulls = np.where(labels == 0)[0]
+    num_pos = len(m6as)
+    num_neg = len(nulls)
+    if verbose:
+        print(f"{set_name} has {num_pos}" f" positives and {num_neg} negatives")
+    return num_pos, num_neg
+
+
 def make_one_hot_encoded(y_array):
     """
     Convert int labels to one
@@ -127,23 +150,31 @@ def m6AGenerator(
     # we want to train on input subsets,
     # this will achieve that.
     
-    X_train = train_data["features"]
+    X_train = np.array(train_data["features"], dtype=float)
     X_train = X_train[:, 0:input_size, :]
-    y_train = train_data["labels"]
+    y_train = np.array(train_data["labels"], dtype=int)
     print(f"y_train: {y_train.shape}, {y_train}, {np.unique(y_train)}")
+    
+    count_pos_neg(y_train, set_name="train")
 
     # One-hot-encode train labels
     y_train_ohe = make_one_hot_encoded(y_train)
+    
+    
 
     # Load validation data
     val_data = np.load(val_path, allow_pickle=True)
 
-    X_val = val_data["features"]
+    X_val = np.array(val_data["features"], dtype=float)
     X_val = X_val[:, 0:input_size, :]
-    y_val = val_data["labels"]
+    y_val = np.array(val_data["labels"], dtype=int)
+    
+    count_pos_neg(y_val, set_name="validation")
 
     # One-hot-encode val labels
     y_val_ohe = make_one_hot_encoded(y_val)
+    
+    
 
     print(
         f"Training features shape {X_train.shape},"
