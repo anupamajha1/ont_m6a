@@ -1,0 +1,26 @@
+cd /net/gs/vol4/shared/public/hackathon_2023/Stergachis_lab/data
+
+~/git/ont_m6a/mhamm/ont_bam_parse.py -s 200 -r 100000 -l 1 -o raw_npz/hg002_2 BAMs/HG002_2_training.bam
+
+~/git/ont_m6a/mhamm/ont_bam_parse.py -s 200 -r 100000 -l 0 -o raw_npz/hg002_3 BAMs/HG002_3_training.bam
+
+# 500k dataset
+~/git/ont_m6a/mhamm/ont_data_split.py -p raw_npz/hg002_2_00.npz \
+	-n raw_npz/hg002_3_00.npz \
+	-c 150 -o ./split_npz/set_00 -s train 500000 val 100000
+
+# 5 million dataset
+~/git/ont_m6a/mhamm/ont_data_split.py -p raw_npz/hg002_2_00.npz \
+	-n raw_npz/hg002_3_00.npz \
+	-c 150 -o ./split_npz/set_00_5Ma -s train 2500000 val 500000
+
+~/git/ont_m6a/mhamm/ont_data_split.py -p raw_npz/hg002_2_01.npz \
+	-n raw_npz/hg002_3_01.npz \
+	-c 150 -o ./split_npz/set_01_5Mb -s train 2500000 val 500000
+
+~/git/ont_m6a/mhamm/concat_npz.py -i split_npz/set_00_5Ma_train.npz split_npz/set_01_5Mb_train.npz -o split_npz/set_00_01_5M_train.npz
+~/git/ont_m6a/mhamm/concat_npz.py -i split_npz/set_00_5Ma_val.npz split_npz/set_01_5Mb_val.npz -o split_npz/set_00_01_5M_val.npz
+
+rm split_npz/*5Ma*
+rm split_npz/*5Mb*
+
