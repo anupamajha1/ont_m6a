@@ -4,10 +4,10 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - samtools>=1.13
-  - htslib>=1.13
-  - pysam>=0.19.1
-  - bedtools>=2.30.0
+  - samtools
+  # - htslib>=1.13
+  - pysam
+  # - bedtools>=2.30.0
   - numpy>=1.23
   - pandas
   - spyder
