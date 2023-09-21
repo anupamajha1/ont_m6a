@@ -1,19 +1,4 @@
 #!/usr/bin/env python3
-"""
-m6a_semi_supervised_cnn.py
-Author: Anupama Jha <anupamaj@uw.edu>
-This module predicts whether an
-adenine is methylated or not. The
-model is trained with ONT read sequence, 
-read quality score and methylation score
-from oxford nanopore. The model is a
-convolutional neural network. The
-training scheme is semi-supervised
-where we assume that the m6A labels
-are a mixed set with false
-positives and the negative labels
-are a clean set.
-"""
 
 import torch
 import argparse
@@ -22,15 +7,26 @@ import configparser
 import _pickle as pickle
 from torchsummary import summary
 from sklearn.metrics import average_precision_score, roc_auc_score
-import optuna
 import io
+import matplotlib.pyplot as plt
 
 import sys
 sys.path.insert(0,"..")
 from src.m6a_cnn import M6ANet
 
-verbose = False
+# EP assumption: for every non m6a call above threshold, there is a false positive call
+# precision: ratio of true positives to total number of positive calls
+# FDR: proportion of positives called from the clean negative set
+# mixed set is cleaned to be "postiive" when entering the CNN
 
+verbose = True
+
+class CPU_Unpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if module == 'torch.storage' and name == '_load_from_bytes':
+            return lambda b: torch.load(io.BytesIO(b), map_location='cpu')
+        else:
+            return super().find_class(module, name)
 
 def count_pos_neg(labels, set_name=""):
     """
@@ -73,12 +69,6 @@ def make_one_hot_encoded(y_array):
     y_array_ohe[zero_idx, 1] = 1
     return y_array_ohe
 
-class CPU_Unpickler(pickle.Unpickler):
-    def find_class(self, module, name):
-        if module == 'torch.storage' and name == '_load_from_bytes':
-            return lambda b: torch.load(io.BytesIO(b), map_location='cpu')
-        else:
-            return super().find_class(module, name)
 
 class M6ADataGenerator(torch.utils.data.Dataset):
     """
@@ -88,7 +78,7 @@ class M6ADataGenerator(torch.utils.data.Dataset):
     train the m6A model.
     """
 
-    def __init__(self, features, labels, num_neighoring_nucleotides=7):
+    def __init__(self, features, labels):
         """
         Constructor for the data
         generator class, expects
@@ -108,11 +98,6 @@ class M6ADataGenerator(torch.utils.data.Dataset):
         """
         self.features = features
         self.labels = labels
-        if (num_neighoring_nucleotides < 7) {
-            startIdx = 7 - num_neighboring_nucleotides
-            endIdx = 7 + num_neighboring_nucleotides
-            self.features = features[:, :, startIdx:endIdx]
-        }
 
     def __len__(self):
         return len(self.features)
@@ -383,24 +368,24 @@ def compute_pos_neg_sets(x_data, scores, y_data, score_threshold):
                                    data.
     :return: new features, new labels and all labels.
     """
-    pos_set_score = np.where(scores >= score_threshold)[0]
+    pos_set_score = np.where(scores >= score_threshold)[0] # indices samples with score above thresh
 
-    pos_set_all = np.where(y_data == 1)[0]
+    pos_set_all = np.where(y_data == 1)[0] # indices of pos samples
 
-    pos_set = np.intersect1d(pos_set_score, pos_set_all)
+    pos_set = np.intersect1d(pos_set_score, pos_set_all) # pos samples with score above thresh
 
     neg_set = np.where(y_data == 0)[0]
 
     y_data_init = np.zeros((len(pos_set) + len(neg_set),))
 
-    y_data_init[0 : len(pos_set)] = 1
+    y_data_init[0 : len(pos_set)] = 1 # all pos samples are labeled 1, neg samples are 0
 
-    x_data_init = np.concatenate((x_data[pos_set, :, :], x_data[neg_set, :, :]))
+    x_data_init = np.concatenate((x_data[pos_set, :, :], x_data[neg_set, :, :])) # splits the pos and neg sets
 
     shuffle_idx = np.arange(len(y_data_init), dtype=int)
     np.random.shuffle(shuffle_idx)
 
-    x_data_init = x_data_init[shuffle_idx, :, :]
+    x_data_init = x_data_init[shuffle_idx, :, :] # random subset of data
     y_data_init = y_data_init[shuffle_idx]
 
     count_pos_neg(y_data_init, set_name="New training set")
@@ -422,7 +407,7 @@ def compute_fdr_score(scores, y_data, fdr_threshold=0.1):
     if verbose:
         print(f"positive class to negative" f" class ratio: {pn_ratio}")
 
-    ipd_fdr = tdc(scores, y_data, pn_ratio, desc=True)
+    ipd_fdr = tdc(scores, y_data, pn_ratio, desc=True) # gets q-values from scores
     if verbose:
         print(
             f"ipd_fdr: min: {np.min(ipd_fdr)}, "
@@ -437,7 +422,7 @@ def compute_fdr_score(scores, y_data, fdr_threshold=0.1):
     # positive label
     # and FDR below the
     # threshold.
-    pos_set = np.where(ipd_fdr <= fdr_threshold)[0]
+    pos_set = np.where(ipd_fdr <= fdr_threshold)[0] # indices where fdr is below thresh
 
     # If we found no samples,
     # relax FRD criteria
@@ -466,18 +451,7 @@ def compute_fdr_score(scores, y_data, fdr_threshold=0.1):
     return score_thresholds, num_pos
 
 
-def run(trial):
-    """
-    Run data preprocess and model training.
-    :param config_file: str, path to config
-                            file.
-    :param train_chem: str, which chemistry
-                            to train.
-    :return:
-    """
-    # hyperparameters to study: learning rate
-    semi_lr = trial.suggest_float("semi_lr", 0.0001, 0.001)
-
+def run():
     # read parameters from config file
     config = configparser.ConfigParser()
     config.read("../config.yml")
@@ -489,9 +463,9 @@ def run(trial):
     # length of input sequence
     input_length = int(rel_config["input_length"])
     # path to training data set
-    train_data = rel_config["semi_train_data"]
+    train_data = "../data/ml_data/HG002_2_3_00_400k_train.npz"
     # path to validation data set
-    val_data = rel_config["semi_val_data"]
+    val_data = "../data/ml_data/HG002_2_3_00_400k_val.npz"
     # cpu or cuda for training
     device = rel_config["device"]
     # path to pretrained supervised model
@@ -501,8 +475,7 @@ def run(trial):
     # path to save final model
     final_save_model = rel_config["final_semi_supervised_model_name"]
     # maximum number of epochs for training
-    #max_epochs = int(rel_config["semi_supervised_train_epochs"])
-    max_epochs = 10
+    max_epochs = 5
     # FDR threshold for semi-supervised training
     fdr_threshold = float(rel_config["fdr"])
     # save training results
@@ -520,7 +493,7 @@ def run(trial):
     # fraction of validation data to sample
     val_sample_fraction = float(rel_config["val_sample_fraction"])
     # learning rate
-    #semi_lr = float(rel_config["semi_lr"])
+    semi_lr = float(rel_config["semi_lr"])
     # If we did sample, ensure the sample has at this fraction
     # of m6A calls above FDR < 5%, otherwise resample
     # upto 5 times. 
@@ -532,7 +505,7 @@ def run(trial):
     # percent total m6A identified from the validation set 
     # so far
     total_m6a_percent = float(rel_config["total_m6a_percent"])
-    
+
 
     # Load the supervised model for transfer learning
     model = M6ANet()
@@ -651,9 +624,6 @@ def run(trial):
     # Compute total number of positives
     # and negatives in the validation set
     val_pos_all, val_neg_all = count_pos_neg(y_val, set_name="Validation set")
-    print(
-        f"Learning rate: {semi_lr}"
-    )
     print(f"Validation set has {val_pos_all} positives and {val_neg_all} negatives")
     print(
         f"Validation IPD average precision: "
@@ -806,40 +776,19 @@ def run(trial):
             )
             break
 
-        return sklearn_ap
+    
+    return max_epochs, val_ap, val_scores
+
 
 
 def main():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "--config_file", type=str, default="../config.yml", help="path to the config file."
-    )
-
-    parser.add_argument(
-        "--train_chem",
-        type=str,
-        default="train_ONT_chemistry",
-        help="Which chemistry to validate. The name should match the section header in the config file.",
-    )
-    
-    parser.add_argument(
-        "--smart_init",
-        type=str,
-        default="yes",
-        choices=["yes", "no"],
-        help="Initialize with pretrained model or not. (choices: yes, no)",
-    )
-
-    args = parser.parse_args()
-
-    print(f"Training a {args.train_chem} " f"semi-supervised CNN model.")
-
-    #run(args.config_file, args.train_chem, args.smart_init)
-    study = optuna.create_study(direction="maximize")
-    study.optimize(run, n_trials=10)
-    study.best_params
-    optuna.visualization.plot_slice(study)
+    epochs, val_ap, val_scores = run()
+    plt.figure(figsize=(12, 4))
+    plt.subplot(1, 2, 1)
+    plt.title('Train & Val Accuracy')
+    plt.plot(range(0, epochs + 1), val_ap, label='Train')
+    plt.plot(range(0, epochs + 1), val_scores,label='Val')
+    plt.show()
 
 
 if __name__ == "__main__":
