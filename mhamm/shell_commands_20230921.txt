@@ -1,0 +1,16 @@
+~/git/ont_m6a/mhamm/ont_bam_parse.py -s 200 -n 12 -r 100000 -l 1 -o raw_25bp/hg002_2 BAMs/HG002_2_training.bam
+
+~/git/ont_m6a/mhamm/ont_bam_parse.py -s 200 -n 12 -r 100000 -l 0 -o raw_25bp/hg002_3 BAMs/HG002_3_training.bam
+
+
+# 500k dataset, positive filtered >= 150
+~/git/ont_m6a/mhamm/ont_data_split.py -p raw_25bp/hg002_2_00.npz \
+	-n raw_25bp/hg002_3_00.npz \
+	-c 150 -o ./split_25bp/set_00_filt -s train 500000 val 100000
+
+# 500k dataset positive unfiltered
+~/git/ont_m6a/mhamm/ont_data_split.py -p raw_25bp/hg002_2_00.npz \
+	-n raw_25bp/hg002_3_00.npz \
+	-c 0 -o ./split_25bp/set_00_unfilt -s train 500000 val 100000
+
+rclone copy ./split_25bp  uw_gdrive:2023_Hackathon_Stergachis_lab/data/split_25bp
