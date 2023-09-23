@@ -14,3 +14,10 @@
 	-c 0 -o ./split_25bp/set_00_unfilt -s train 500000 val 100000
 
 rclone copy ./split_25bp  uw_gdrive:2023_Hackathon_Stergachis_lab/data/split_25bp
+
+
+~/git/ont_m6a/mhamm/autocorr_meth.py \
+	results/merged_00_100p_20k_autocorr_input_5M_set2_0_255.npz \
+	-m 230 -d 0.90 -n 3000 \
+	-o data/autocorr/merged_00_100p_20k_set2_0_255.npz
+

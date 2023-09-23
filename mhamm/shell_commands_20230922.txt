@@ -1,0 +1,19 @@
+./autocorr_meth.py \
+	merged_00_100p_20k_autocorr_input_5M_set2_0_255.npz \
+	-m 230 -d 0.90 -n 3000 \
+	-o merged_00_100p_20k_set2_0_255.npz
+
+
+# =================
+# 9/22
+
+
+rclone copy -P  uw_gdrive:2023_Hackathon_Stergachis_lab/data/NAPA_BAMs/  ./NAPA_BAM
+
+
+~/git/ont_m6a/mhamm/ont_bam_parse.py -r 10000000 -l 1 -o NAPA_raw/GM12878_NAPA NAPA_BAM/GM12878_NAPA_sample.bam
+
+~/git/ont_m6a/mhamm/ont_bam_parse.py -r 10000000 -l 1 -o NAPA_raw/HG002_2_NAPA NAPA_BAM/HG002_2_NAPA_sample.bam
+
+
+

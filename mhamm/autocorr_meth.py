@@ -13,9 +13,11 @@ import argparse
 
 # import seaborn as sns
 
-args = argparse.Namespace(npz_file='/home/morgan/Documents/grad_school/misc_code/hackathon/merged_00_100p_20k_autocorr_input_5M_set2.npz',
-                          invert_ml=True, ml_cutoff=0.938, dorado_cutoff=0.95, 
-                          n_sites=2000, output_file='/home/morgan/Documents/grad_school/misc_code/hackathon/test_out.npz') 
+
+## args for testing
+# args = argparse.Namespace(npz_file='/home/morgan/Documents/grad_school/misc_code/hackathon/merged_00_100p_20k_autocorr_input_5M_set2.npz',
+#                           invert_ml=True, ml_cutoff=0.938, dorado_cutoff=0.95, 
+#                           n_sites=2000, output_file='/home/morgan/Documents/grad_school/misc_code/hackathon/test_out.npz') 
 
 
 # =============================================================================
@@ -98,9 +100,9 @@ def main(args):
     
     lab0_ml_data = auto_corr_n(preds_neg, score_col='ml', n_sites=args.n_sites, cutoff=args.ml_cutoff)
     
-    lab1_dorado_data = auto_corr_n(preds_pos, score_col='dorado', n_sites=args.n_sites, cutoff=args.ml_cutoff)
+    lab1_dorado_data = auto_corr_n(preds_pos, score_col='dorado', n_sites=args.n_sites, cutoff=args.dorado_cutoff)
     
-    lab0_dorado_data = auto_corr_n(preds_neg, score_col='dorado', n_sites=args.n_sites, cutoff=args.ml_cutoff)
+    lab0_dorado_data = auto_corr_n(preds_neg, score_col='dorado', n_sites=args.n_sites, cutoff=args.dorado_cutoff)
     
     npz_struct = {'lab1_ml_data':lab1_ml_data, 
                   'lab0_ml_data':lab0_ml_data, 
